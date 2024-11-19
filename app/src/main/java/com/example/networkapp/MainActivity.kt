@@ -1,5 +1,6 @@
 package com.example.networkapp
 
+import android.content.SharedPreferences
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.widget.Button
@@ -14,6 +15,7 @@ import com.android.volley.toolbox.StringRequest
 import com.android.volley.toolbox.Volley
 import com.squareup.picasso.Picasso
 import org.json.JSONObject
+import java.io.File
 
 // TODO (1: Fix any bugs)
 // TODO (2: Add function saveComic(...) to save comic info when downloaded
@@ -28,9 +30,23 @@ class MainActivity : AppCompatActivity() {
     lateinit var showButton: Button
     lateinit var comicImageView: ImageView
 
+    private lateinit var preferences: SharedPreferences
+
+    private val internalFilename = "my_file"
+    private lateinit var file: File
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+
+
+        // Get preferences for _this_ component
+        preferences = getPreferences(MODE_PRIVATE)
+
+        // Create file reference for app-specific file
+        file = File(filesDir, internalFilename)
+
+
 
         requestQueue = Volley.newRequestQueue(this)
 
@@ -55,10 +71,16 @@ class MainActivity : AppCompatActivity() {
                 , {}
             )
         )
+        requestQueue.add (
+            JsonObjectRequest(url
+                , {saveComic(it)}
+                , {}
+            )
+        )
     }
 
     // Display a comic for a given comic JSON object
-    private fun showComic (comicObject: JSONObject) {
+    private fun showComic(comicObject: JSONObject) {
         titleTextView.text = comicObject.getString("title")
         descriptionTextView.text = comicObject.getString("alt")
         Picasso.get().load(comicObject.getString("img")).into(comicImageView)
@@ -67,6 +89,12 @@ class MainActivity : AppCompatActivity() {
     // Implement this function
     private fun saveComic(comicObject: JSONObject) {
 
+        try {
+            file.writeText(comicObject.toString())
+            Toast.makeText(this, "Comic saved to file successfully!", Toast.LENGTH_SHORT).show()
+        } catch (e: Exception) {
+            Toast.makeText(this, "Error saving comic: ${e.message}", Toast.LENGTH_SHORT).show()
+        }
     }
 
 }
