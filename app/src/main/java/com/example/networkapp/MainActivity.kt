@@ -15,7 +15,11 @@ import com.android.volley.toolbox.StringRequest
 import com.android.volley.toolbox.Volley
 import com.squareup.picasso.Picasso
 import org.json.JSONObject
+import java.io.BufferedReader
 import java.io.File
+import java.io.FileOutputStream
+import java.io.FileReader
+import java.io.IOException
 
 // TODO (1: Fix any bugs)
 // TODO (2: Add function saveComic(...) to save comic info when downloaded
@@ -30,7 +34,7 @@ class MainActivity : AppCompatActivity() {
     lateinit var showButton: Button
     lateinit var comicImageView: ImageView
 
-    private lateinit var preferences: SharedPreferences
+
 
     private val internalFilename = "my_file"
     private lateinit var file: File
@@ -39,12 +43,6 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-
-        // Get preferences for _this_ component
-        preferences = getPreferences(MODE_PRIVATE)
-
-        // Create file reference for app-specific file
-        file = File(filesDir, internalFilename)
 
 
 
@@ -58,6 +56,24 @@ class MainActivity : AppCompatActivity() {
 
         showButton.setOnClickListener {
             downloadComic(numberEditText.text.toString())
+        }
+        // Create file reference for app-specific file
+        file = File(filesDir, internalFilename)
+
+        if(file.exists()) {
+            try{
+                val br = BufferedReader(FileReader(file))
+                val text = StringBuilder()
+                var line: String?
+                while(br.readLine().also { line = it} != null) {
+                    text.append(line)
+                    text.append('\n')
+                }
+                br.close()
+                showComic(JSONObject(text.toString()))
+            } catch (e: IOException){
+                e.printStackTrace()
+            }
         }
 
     }
@@ -84,16 +100,18 @@ class MainActivity : AppCompatActivity() {
         titleTextView.text = comicObject.getString("title")
         descriptionTextView.text = comicObject.getString("alt")
         Picasso.get().load(comicObject.getString("img")).into(comicImageView)
+        saveComic(comicObject)
     }
 
     // Implement this function
     private fun saveComic(comicObject: JSONObject) {
 
         try {
-            file.writeText(comicObject.toString())
-            Toast.makeText(this, "Comic saved to file successfully!", Toast.LENGTH_SHORT).show()
+            val fos = FileOutputStream(file)
+            fos.write(comicObject.toString().toByteArray())
+            fos.close()
         } catch (e: Exception) {
-            Toast.makeText(this, "Error saving comic: ${e.message}", Toast.LENGTH_SHORT).show()
+            e.printStackTrace()
         }
     }
 
